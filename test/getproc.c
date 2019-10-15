@@ -3,6 +3,18 @@
 #include <string.h>
 #include <ctype.h>
 
+int isDigt(char* str){
+
+    int end = strlen(str);
+    for (int i =0; i< end; i++)
+        if (isdigit( str[i] ) == 0)
+             return 0;
+        
+    return 1;
+	
+}
+
+
     int main (int c, char *v[]) {
         struct dirent *pDirent;
         DIR *pDir;
@@ -20,16 +32,7 @@
         int where = 0;
         while ((pDirent = readdir(pDir)) != NULL) {
 //            printf ("[%s]\n", pDirent->d_name);
-            
-            int end = strlen(pDirent->d_name);
-            int digitflag = 1;
-            for (int i =0; i< end; i++)
-                if (isdigit( pDirent->d_name[i] ) == 0){
-                    digitflag = 0;
-                    break;
-                }
-            
-            if (digitflag==1)
+           if (isDigt(pDirent->d_name)) 
                 strcpy( array[where++], pDirent->d_name);
             
         }
