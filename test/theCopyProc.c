@@ -5,7 +5,19 @@
 #include <stdlib.h>
 
 #define MAXCHAR 1024
-char * rdLink(int arr_proc, int arr_fd);
+
+char * cmdline_name(char * str);
+int split_count(char **arr, char *str, const char *del) {
+    char *s = strtok(str, del);
+    int count = 0;
+    while(s != NULL) {
+	count++;
+        *arr++ = s;
+        s = strtok(NULL, del);
+    }
+    return count;
+}
+
 
 int isDigt(char* str){
     int end = strlen(str);
@@ -15,7 +27,7 @@ int isDigt(char* str){
     return 1;
 }
 
-char * sysCmd(char * cmdstring){
+char * sysCmd(char * cmdstring){ // return system command result in str
    char *tmpfile = "tmp";
    char cmd_string[1024];  
    mkstemp(tmpfile);  
@@ -27,7 +39,17 @@ char * sysCmd(char * cmdstring){
    pFile = fopen(tmpfile,"r");
    fgets(str, MAXCHAR, pFile);
    fclose(pFile);
-   return str;
+   if ( strcmp(str, "") )
+        return str;
+//   printf("sysCmd:%s \n", str);
+   return "";
+}
+
+char * rdLink(int arr_proc, int arr_fd){
+    char *cmd = malloc(MAXCHAR);
+    sprintf(cmd, "readlink /proc/%d/fd/%d", arr_proc, arr_fd);
+
+    return sysCmd(cmd);
 }
 
 void getFileN(char *addr, int *arr){
@@ -35,13 +57,14 @@ void getFileN(char *addr, int *arr){
     DIR *pDir;
     pDir = opendir(addr);
     int where = 0;
-    while ((pDirent = readdir(pDir)) != NULL) {
-//      printf ("[%s]\n", pDirent->d_name);
+    while ( (pDir != NULL) && ( (pDirent = readdir(pDir)) != NULL)) {
+//        printf ("[%s]\n", pDirent->d_name);
         if (isDigt(pDirent->d_name))
             arr[where++] = strtol(pDirent->d_name,NULL,10);
-
     }
     closedir (pDir);
+    
+//    printf("after close %s \n", addr);
 }
 
 char * find_inode(char* str){
@@ -64,65 +87,82 @@ char * find_inode(char* str){
     return inode;
 }
 
-void print_arr(int *arr_fd){
-    int i_ =1;
-    printf("%d\n", arr_fd[0]);
-    while(arr_fd[i_] != 0)
-        printf("%d\n", arr_fd[i_++]);
+void print_arr(int *arr){
+    int i = 0;
+    while(arr[++i] != 0){
+        if (i == 1) // i_ == 0, 1
+            printf("%d, %d \n", 0, arr[0]);
+        printf("%d, %d \n", i, arr[i]);
+    }
+}
+
+int arr_len(int *arr){
+    int i = 0;
+    while(arr[++i] != 0);
+    return i;
 }
 
 int main (int argc, char *argv[]) {
-    struct dirent *pDirent;
-    DIR *pDir;
 
-    char proc_array[1000][1000];
-    if (argc < 2) {
-        printf ("Usage: testprog <dirname>\n");
-        return 1;
-    }
-    pDir = opendir (argv[1]);
-    if (pDir == NULL) {
-        printf ("Cannot open directory '%s'\n", argv[1]);
-        return 1;
-    }
-    int where = 0;
-    while ((pDirent = readdir(pDir)) != NULL) {
-//      printf ("[%s]\n", pDirent->d_name);
-        if (isDigt(pDirent->d_name)) 
-            strcpy( proc_array[where++], pDirent->d_name);
-    }
-    closedir (pDir);
-    for(int i = where; i >= 0; i--);
-//        printf("%s \n", proc_array[i]);
+    int proc_arr[500]={0};
+    char addr_proc[30] = "/proc";
+    getFileN(addr_proc, proc_arr);
+//    print_arr(proc_arr);
 
+/*
 //    char str[1000] = "lr-x------ 1 dragonfly dragonfly 64  十  15 20:57 27 -> /var/lib/apt/lists/ftp (deleted)";
 //    printf("inode= %s \n", find_inode(str));
 
     char addr[30] = "/proc/5717/fd/";
-    int arr_fd[100]={0};
-    getFileN(addr, arr_fd);
-//    print_arr(arr_fd);
+    int fd_arr[100]={0};
+    getFileN(addr, fd_arr);
+    //print_arr(fd_arr);
 
-    int i_ =1;
-    while(arr_fd[i_++] != 0){
-	char cmd[2000] = "readlink /proc/5717/fd/";
-	sprintf(cmd, "%s%d", cmd, arr_fd[i_]);
-	if (i_ == 2){
-	    sprintf(cmd, "%s%d", cmd, arr_fd[0]);
-            printf("%d/fd/%d= %s\n", 5717,arr_fd[0], rdLink(5717, arr_fd[0]));
-	    sprintf(cmd, "%s%d", cmd, arr_fd[1]);
-            printf("%d/fd/%d= %s\n", 5717,arr_fd[1], rdLink(5717, arr_fd[1]));
+    int tmp = 169;
+    int tmp1 = 1;
+    printf("%d/fd/%d= %s\n", proc_arr[tmp] , fd_arr[tmp1], rdLink(proc_arr[tmp], fd_arr[tmp1]));
+*/
+    int end_proc = arr_len(proc_arr);
+
+    for(int i = 0; i < end_proc; i++){
+	int fd_arr[100] = {0};
+	char addr[100] = "";
+	sprintf( addr, "/proc/%d/fd/", proc_arr[i] );
+//	printf("%s\n", addr);
+	getFileN(addr,fd_arr); 
+
+//      the problem is without using sudo Permission Deny, lead to segmentation fail;
+//	using sudo will change proc_arr for no reason... lead to "proc/X/fd/" where X didn't exist...
+
+	int end_fd = arr_len(fd_arr);
+	for (int j = 0; j< end_fd; j++){
+	    char *rd_inode =  find_inode(rdLink(proc_arr[i], fd_arr[j]));
+	    int int_rd_inode = strlen(rd_inode);
+	    
+	    char cmd[100] = "";
+	    if (int_rd_inode != 0){
+        //        printf("%d/fd/%d= %s\n", proc_arr[i] , fd_arr[j] , rdLink(proc_arr[i], fd_arr[j]) );
+		sprintf(cmd, "cat /proc/%d/cmdline", proc_arr[i]);
+	//	printf("%d, %s \n", proc_arr[i], cmdline_name( sysCmd(cmd) ) );
+		cmdline_name(sysCmd(cmd));
+	    }
 	}
-        printf("%d/fd/%d= %s\n", 5717,arr_fd[i_], rdLink(5717, arr_fd[i_]));
     }
-
-//    sysreadL()
     return 0;
 }
 
-char * rdLink(int arr_proc, int arr_fd){
-    char *cmd = malloc(MAXCHAR);
-    sprintf(cmd, "readlink /proc/%d/fd/%d", arr_proc, arr_fd);
+char * cmdline_name(char * str){
+    char *name = malloc(2000);
+    char *arr[100];
+    const char *del = "/";
+    int end = split_count(arr, str, del);
+  
+    strcpy(name, *(arr + end - 1) ); 
+    const char *del2 = " ";
+    int nothing = split_count(arr, name, del2);
 
-    return sysCmd(cmd);
+    strcpy(name, *arr);
+    printf("%d, %s \n", end, name);
+    
+    return name;
 }

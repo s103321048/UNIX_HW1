@@ -6,6 +6,19 @@
 
 #define MAXCHAR 1024
 
+char * cmdline_name(char * str);
+int split_count(char **arr, char *str, const char *del) {
+    char *s = strtok(str, del);
+    int count = 0;
+    while(s != NULL) {
+	count++;
+        *arr++ = s;
+        s = strtok(NULL, del);
+    }
+    return count;
+}
+
+
 int isDigt(char* str){
     int end = strlen(str);
     for (int i =0; i< end; i++)
@@ -13,7 +26,6 @@ int isDigt(char* str){
              return 0;
     return 1;
 }
-
 
 char * sysCmd(char * cmdstring){ // return system command result in str
    char *tmpfile = "tmp";
@@ -45,7 +57,7 @@ void getFileN(char *addr, int *arr){
     DIR *pDir;
     pDir = opendir(addr);
     int where = 0;
-    while ((pDirent = readdir(pDir)) != NULL) {
+    while ( (pDir != NULL) && ( (pDirent = readdir(pDir)) != NULL)) {
 //        printf ("[%s]\n", pDirent->d_name);
         if (isDigt(pDirent->d_name))
             arr[where++] = strtol(pDirent->d_name,NULL,10);
@@ -116,19 +128,37 @@ int main (int argc, char *argv[]) {
 	int fd_arr[100] = {0};
 	char addr[100] = "";
 	sprintf( addr, "/proc/%d/fd/", proc_arr[i] );
-	printf("%s\n", addr);
-/*	getFileN(addr,fd_arr); */
+//	printf("%s\n", addr);
+	getFileN(addr,fd_arr); 
 
-//      the problem is without using sudo Permission Deny, lead to segmentation fail;
-//	using sudo will change proc_arr for no reason... lead to "proc/X/fd/" where X didn't exist...
-
-
-
-//	int end_fd = arr_len(fd_arr);
-//	for (int j = 0; j< end_fd; j++){
-//            printf("%d/fd/%d= %s\n", proc_arr[i] , fd_arr[j], rdLink(proc_arr[i], fd_arr[j]));
-//	}
+	int end_fd = arr_len(fd_arr);
+	for (int j = 0; j< end_fd; j++){
+	    char *rd_inode =  find_inode(rdLink(proc_arr[i], fd_arr[j]));
+	    int int_rd_inode = strlen(rd_inode);
+	    
+	    char cmd[100] = "";
+	    if (int_rd_inode != 0){
+        //        printf("%d/fd/%d= %s\n", proc_arr[i] , fd_arr[j] , rdLink(proc_arr[i], fd_arr[j]) );
+		sprintf(cmd, "cat /proc/%d/cmdline", proc_arr[i]);
+		printf("%d, %s \n", proc_arr[i], cmdline_name( sysCmd(cmd) ) );
+	//	cmdline_name(sysCmd(cmd));
+	    }
+	}
     }
     return 0;
 }
 
+char * cmdline_name(char * str){
+    char *name = malloc(2000);
+    char *arr[100];
+    const char *del = "/";
+    int end = split_count(arr, str, del);
+  
+    strcpy(name, *(arr + end - 1) ); 
+    const char *del2 = " ";
+    int nothing = split_count(arr, name, del2);
+
+    strcpy(name, *arr);
+    printf("%d, %s \n", end, name);
+    
+    return name;
