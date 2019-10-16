@@ -6,7 +6,6 @@
 
 #define MAXCHAR 1024
 
-char * cmdline_name(char * str);
 int split_count(char **arr, char *str, const char *del) {
     char *s = strtok(str, del);
     int count = 0;
@@ -18,6 +17,22 @@ int split_count(char **arr, char *str, const char *del) {
     return count;
 }
 
+
+char * cmdline_name(char * str){
+    char *name = malloc(2000);
+    char *arr[100];
+    const char *del = "/";
+    int last_split = split_count(arr, str, del);
+  
+    strcpy(name, *(arr + last_split - 1) ); 
+    const char *del2 = " ";
+    int nothing = split_count(arr, name, del2);
+
+    strcpy(name, *arr);
+    //printf("%d, %s \n", last_split, name);
+    
+    return name;
+}
 
 int isDigt(char* str){
     int end = strlen(str);
@@ -102,28 +117,15 @@ int arr_len(int *arr){
     return i;
 }
 
-int main (int argc, char *argv[]) {
+int get_inode_fileName(char **inode, char **fileName) {
 
     int proc_arr[500]={0};
     char addr_proc[30] = "/proc";
     getFileN(addr_proc, proc_arr);
 //    print_arr(proc_arr);
 
-/*
-//    char str[1000] = "lr-x------ 1 dragonfly dragonfly 64  十  15 20:57 27 -> /var/lib/apt/lists/ftp (deleted)";
-//    printf("inode= %s \n", find_inode(str));
-
-    char addr[30] = "/proc/5717/fd/";
-    int fd_arr[100]={0};
-    getFileN(addr, fd_arr);
-    //print_arr(fd_arr);
-
-    int tmp = 169;
-    int tmp1 = 1;
-    printf("%d/fd/%d= %s\n", proc_arr[tmp] , fd_arr[tmp1], rdLink(proc_arr[tmp], fd_arr[tmp1]));
-*/
     int end_proc = arr_len(proc_arr);
-
+    int just_count = 0;
     for(int i = 0; i < end_proc; i++){
 	int fd_arr[100] = {0};
 	char addr[100] = "";
@@ -138,27 +140,24 @@ int main (int argc, char *argv[]) {
 	    
 	    char cmd[100] = "";
 	    if (int_rd_inode != 0){
-        //        printf("%d/fd/%d= %s\n", proc_arr[i] , fd_arr[j] , rdLink(proc_arr[i], fd_arr[j]) );
 		sprintf(cmd, "cat /proc/%d/cmdline", proc_arr[i]);
-		printf("%d, %s \n", proc_arr[i], cmdline_name( sysCmd(cmd) ) );
-	//	cmdline_name(sysCmd(cmd));
+//                printf("%d/fd/%d inode<%s> %s\n", proc_arr[i] , fd_arr[j] ,
+//                         find_inode( rdLink(proc_arr[i], fd_arr[j]) ), cmdline_name(sysCmd(cmd)) );
+		*inode++ = find_inode( rdLink(proc_arr[i], fd_arr[j]) );
+		*fileName++ = cmdline_name(sysCmd(cmd)) ;
+		just_count++;
 	    }
 	}
     }
-    return 0;
+    printf("%d", just_count);
+    return just_count;
 }
 
-char * cmdline_name(char * str){
-    char *name = malloc(2000);
-    char *arr[100];
-    const char *del = "/";
-    int end = split_count(arr, str, del);
-  
-    strcpy(name, *(arr + end - 1) ); 
-    const char *del2 = " ";
-    int nothing = split_count(arr, name, del2);
-
-    strcpy(name, *arr);
-    printf("%d, %s \n", end, name);
-    
-    return name;
+int main(){
+    char *inodes[1000];
+    char *fileName[1000];
+    int num = get_inode_fileName(inodes, fileName);
+    for (int i = 0; i < num; i++)
+	printf("%s %s \n",inodes[i], fileName[i]);
+    return 0;
+}
