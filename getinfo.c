@@ -198,50 +198,49 @@ void print_ipv(char* filename, char* proto){
 
 
 int main(int argc, char *argv[]){
-    char* filename_tcp = "./source/tcp_file";
+    system("cat /proc/net/tcp > ./source/tcp.txt");
+    system("cat /proc/net/tcp6 > ./source/tcp6.txt");
+    system("cat /proc/net/udp > ./source/udp.txt");
+    system("cat /proc/net/udp6 > ./source/udp6.txt");
+
+    char* filename_tcp = "./source/tcp.txt";
     char* filename_udp6 = "./source/udp6.txt";
     char* filename_udp = "./source/udp.txt";
     char* filename_tcp6 = "./source/tcp6.txt";
-//    system("cat /proc/net/tcp > a");
-//    system("cat /proc/net/tcp6 >> a");
-//    system("cat /proc/net/udp >> a");
-//    system("cat /proc/net/udp6 >> a");
 
      int c;
+     int uflag = 0;
+     int tflag = 0;
+     if (argc == 1){
+        uflag = 1;
+        tflag = 1;
+     }
      while((c = getopt_long (argc, argv, short_options, long_options, NULL)) != -1)
      {
          switch (c){
          case 't':
-             printf("List of TCP connections:\n");
-             printf("Proto Local Address           Foreign Address         PID/Program name and arguments\n");
-             print_ipv(filename_tcp, "tcp");
-             print_ipv(filename_tcp6, "tcp6");
+             tflag = 1;
              break;
          case 'u':
-             printf("List of UDP connections:\n");
-             printf("Proto Local Address           Foreign Address         PID/Program name and arguments\n");
-             print_ipv(filename_udp, "udp");
-             print_ipv(filename_udp6, "udp6");
+             uflag = 1;
              break;
          case 'l':
              l_opt_arg = optarg;
              printf("Our love is %s!\n", l_opt_arg);
              break;
          }
-    //     if (argv[optind] == NULL || argv[optind + 1] == NULL) {
-         if (argv[optind+1] == NULL) {
-             printf("List of TCP connections:\n");
-             printf("Proto Local Address           Foreign Address         PID/Program name and arguments\n");
-             print_ipv(filename_tcp, "tcp");
-             print_ipv(filename_tcp6, "tcp6");
-             printf("\n");
-             printf("List of UDP connections:\n");
-             printf("Proto Local Address           Foreign Address         PID/Program name and arguments\n");
-             print_ipv(filename_udp, "udp");
-             print_ipv(filename_udp6, "udp6");
-         }
-     
      }
-     
+     if (tflag == 1){
+        printf("List of TCP connections:\n");
+        printf("Proto Local Address           Foreign Address         PID/Program name and arguments\n");
+        print_ipv(filename_tcp, "tcp");
+        print_ipv(filename_tcp6, "tcp6");
+     }
+     if (uflag == 1){
+        printf("\nList of UDP connections:\n");
+        printf("Proto Local Address           Foreign Address         PID/Program name and arguments\n");
+        print_ipv(filename_udp, "udp");
+        print_ipv(filename_udp6, "udp6");
+     }
     return 0;
 }

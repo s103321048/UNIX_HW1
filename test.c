@@ -198,14 +198,15 @@ void print_ipv(char* filename, char* proto){
 
 
 int main(int argc, char *argv[]){
-    char* filename_tcp = "./source/tcp_file";
+    system("cat /proc/net/tcp > ./source/tcp.txt");
+    system("cat /proc/net/tcp6 > ./source/tcp6.txt");
+    system("cat /proc/net/udp > ./source/udp.txt");
+    system("cat /proc/net/udp6 > ./source/udp6.txt");
+
+    char* filename_tcp = "./source/tcp.txt";
     char* filename_udp6 = "./source/udp6.txt";
     char* filename_udp = "./source/udp.txt";
     char* filename_tcp6 = "./source/tcp6.txt";
-//    system("cat /proc/net/tcp > a");
-//    system("cat /proc/net/tcp6 >> a");
-//    system("cat /proc/net/udp >> a");
-//    system("cat /proc/net/udp6 >> a");
 
      int c;
      int uflag = 0;
